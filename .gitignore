@@ -1,0 +1,4 @@
+proj/dataset
+proj/llm/llama.cpp
+proj/__pycache__
+proj/llm/phi3-driver.gguf

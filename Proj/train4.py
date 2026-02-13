@@ -9,6 +9,19 @@ Features:
 - All outputs organized in train4_outputs/ folder
 """
 
+from paper_diagram_functions import (
+    plot_training_history,
+    plot_roc_curves,
+    plot_confusion_matrix_paper,
+    plot_model_metrics_comparison,
+    plot_architecture_complexity,
+    plot_class_distribution,
+    plot_per_class_metrics,
+    generate_paper_summary_report,
+    plot_precision_recall_curves
+)
+
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -40,7 +53,7 @@ from pathlib import Path
 warnings.filterwarnings("ignore")
 
 # Create output directory
-OUTPUT_DIR = Path("train4_outputs")
+OUTPUT_DIR = Path("train4_outputs_TESTRUN")
 OUTPUT_DIR.mkdir(exist_ok=True)
 print(f"Output directory created: {OUTPUT_DIR}")
 
@@ -590,6 +603,7 @@ def main():
     print("=" * 80)
     print("GPU-Optimized Driver Stress Detection Training")
     print("=" * 80)
+    PAPER_OUTPUT_DIR = "train4_paper_fol"
     
     if GPU_AVAILABLE:
         print("✓ Training with GPU acceleration (RTX 4060)")
@@ -638,6 +652,7 @@ def main():
     # Train all models
     trained_models = {}
     results = {}
+    histories = {}
 
     for model_name, model_builder in models_config.items():
         try:
@@ -660,6 +675,7 @@ def main():
                 X_train, y_train, X_val, y_val, model, model_name, num_epochs=100
             )
             trained_models[model_name] = trained_model
+            histories[model_name] = history
 
             results[model_name] = evaluate_model(
                 trained_model, X_test, y_test, model_name,
@@ -749,6 +765,31 @@ def main():
     param_diff = model1.count_params() - model5.count_params()
     param_pct = (param_diff / model1.count_params()) * 100
     print(f"\nGRU is {param_pct:.1f}% lighter ({param_diff:,} fewer parameters)")
+
+    print("Generating Publication-Quality Diagrams...")
+
+    model_params = {name: trained_models[name].count_params() for name in trained_models}
+
+    # Generate comprehensive comparison
+    plot_model_metrics_comparison(results)
+    plot_architecture_complexity(results, model_params)
+    plot_class_distribution(y_train, y_val, y_test)
+
+    # For each model, generate detailed diagrams
+    for model_name in results.keys():
+        model = trained_models[model_name]
+        y_pred_proba = model.predict(X_test, batch_size=128, verbose=0)
+        
+        plot_training_history(histories[model_name], model_name)
+        plot_confusion_matrix_paper(results[model_name]['confusion_matrix'], model_name)
+        plot_roc_curves(y_test, y_pred_proba, num_classes, model_name)
+        plot_precision_recall_curves(y_test, y_pred_proba, num_classes, model_name)
+        plot_per_class_metrics(y_test, y_pred_proba)
+
+    # Generate summary report
+    generate_paper_summary_report(results, model_params)
+
+    print(f"All diagrams saved to: {PAPER_OUTPUT_DIR}")
 
 
 if __name__ == "__main__":
